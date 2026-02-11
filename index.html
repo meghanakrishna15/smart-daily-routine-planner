@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Daily Routine Planner</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #eef7f1;
+}
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+h1, h2 {
+    text-align: center;
+    color: #2e7d32;
+}
+label {
+    font-weight: bold;
+}
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+}
+button {
+    background: #2e7d32;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+button:hover {
+    background: #1b5e20;
+}
+.result {
+    background: #f1f8e9;
+    padding: 15px;
+    margin-top: 20px;
+}
+.hidden {
+    display: none;
+}
+ul {
+    margin-left: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- REGISTER -->
+<div class="container" id="registerBox">
+<h1>User Registration</h1>
+
+<label>Name</label>
+<input type="text" id="rname">
+
+<label>Username</label>
+<input type="text" id="ruser">
+
+<label>Password</label>
+<input type="password" id="rpass">
+
+<button onclick="register()">Register</button>
+<p id="regMsg"></p>
+
+<p style="text-align:center">
+<a href="#" onclick="showLogin()">Already registered? Login</a>
+</p>
+</div>
+
+<!-- LOGIN -->
+<div class="container hidden" id="loginBox">
+<h1>User Login</h1>
+
+<label>Username</label>
+<input type="text" id="luser">
+
+<label>Password</label>
+<input type="password" id="lpass">
+
+<button onclick="login()">Login</button>
+<p id="loginMsg"></p>
+
+<p style="text-align:center">
+<a href="#" onclick="showRegister()">New user? Register</a>
+</p>
+</div>
+
+<!-- MAIN APP -->
+<div class="container hidden" id="mainBox">
+<h1>Daily Routine & Health Planner</h1>
+<p id="welcome"></p>
+
+<label>Age</label>
+<input type="number" id="age">
+
+<label>Gender</label>
+<select id="gender">
+<option value="male">Male</option>
+<option value="female">Female</option>
+</select>
+
+<label>Working Status</label>
+<select id="work">
+<option value="working">Working (Office)</option>
+<option value="home">Non-working (Home)</option>
+<option value="retired">Retired</option>
+</select>
+
+<label>Health Condition</label>
+<select id="disease">
+<option value="normal">Normal</option>
+<option value="diabetes">Diabetes</option>
+<option value="bp">Blood Pressure</option>
+<option value="thyroid">Thyroid</option>
+<option value="gastric">Gastric</option>
+<option value="asthma">Asthma</option>
+<option value="obesity">Obesity</option>
+</select>
+
+<button onclick="generate()">Get My Routine</button>
+<button onclick="printRoutine()">🖨️ Print</button>
+<button onclick="logout()">Logout</button>
+
+<div id="output" class="result"></div>
+</div>
+
+<script>
+/* ---------- PAGE SWITCH ---------- */
+function showLogin() {
+    document.getElementById("registerBox").classList.add("hidden");
+    document.getElementById("loginBox").classList.remove("hidden");
+}
+
+function showRegister() {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("registerBox").classList.remove("hidden");
+}
+
+/* ---------- REGISTER ---------- */
+function register() {
+    let name = document.getElementById("rname").value;
+    let user = document.getElementById("ruser").value;
+    let pass = document.getElementById("rpass").value;
+
+    if (!name || !user || !pass) {
+        document.getElementById("regMsg").innerText = "⚠️ Fill all fields";
+        return;
+    }
+
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+
+    if (users.find(u => u.username === user)) {
+        document.getElementById("regMsg").innerText = "❌ Username already exists";
+        return;
+    }
+
+    users.push({ name, username: user, password: pass });
+    localStorage.setItem("users", JSON.stringify(users));
+
+    document.getElementById("regMsg").innerText = "✅ Registration successful";
+}
+
+/* ---------- LOGIN ---------- */
+function login() {
+    let user = document.getElementById("luser").value;
+    let pass = document.getElementById("lpass").value;
+
+    let users = JSON.parse(localStorage.getItem("users")) || [];
+    let found = users.find(u => u.username === user && u.password === pass);
+
+    if (found) {
+        localStorage.setItem("currentUser", JSON.stringify(found));
+        document.getElementById("loginBox").classList.add("hidden");
+        document.getElementById("mainBox").classList.remove("hidden");
+        document.getElementById("welcome").innerText = "Welcome, " + found.name + " 👋";
+    } else {
+        document.getElementById("loginMsg").innerText = "❌ Invalid login";
+    }
+}
+
+/* ---------- AUTO LOGIN ---------- */
+let currentUser = localStorage.getItem("currentUser");
+if (currentUser) {
+    document.getElementById("registerBox").classList.add("hidden");
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("mainBox").classList.remove("hidden");
+    document.getElementById("welcome").innerText =
+        "Welcome, " + JSON.parse(currentUser).name + " 👋";
+}
+
+/* ---------- LOGOUT ---------- */
+function logout() {
+    localStorage.removeItem("currentUser");
+    location.reload();
+}
+
+/* ---------- CALORIES ---------- */
+function getCalories(age, gender) {
+    if (age < 18) return 1800;
+    if (age <= 30) return gender === "male" ? 2500 : 2000;
+    if (age <= 50) return gender === "male" ? 2300 : 1800;
+    return gender === "male" ? 2000 : 1600;
+}
+
+/* ---------- MAIN GENERATION ---------- */
+function generate() {
+    let age = Number(document.getElementById("age").value);
+    let gender = document.getElementById("gender").value;
+    let work = document.getElementById("work").value;
+    let disease = document.getElementById("disease").value;
+
+    if (!age) {
+        document.getElementById("output").innerText = "⚠️ Please enter age";
+        return;
+    }
+
+    let calories = getCalories(age, gender);
+
+    let wake = work === "working" ? "6:00 AM" : "6:30 AM";
+    let sleep = age > 60 ? "9:00 PM" : "10:30 PM";
+
+    let water = age < 18 ? "2 L" : age <= 50 ? "2.5–3 L" : "2–2.5 L";
+
+    let walk =
+        disease === "obesity" ? "45–60 minutes" :
+        disease === "diabetes" || disease === "bp" ? "30–45 minutes" :
+        age > 60 ? "20–30 minutes" : "30 minutes";
+
+    let food = {
+        normal: "Balanced home food, fruits, vegetables",
+        diabetes: "Millets, vegetables, avoid sugar",
+        bp: "Low salt food, fruits, greens",
+        thyroid: "Boiled vegetables, fruits, nuts",
+        gastric: "Soft food, curd, avoid spicy",
+        asthma: "Warm food, soups",
+        obesity: "Low oil food, salads"
+    };
+
+    document.getElementById("output").innerHTML = `
+        <h2>🕒 Daily Schedule</h2>
+        <ul>
+            <li>${wake} – Wake up</li>
+            <li>6:30–7:00 AM – Walking / Exercise</li>
+            <li>7:30 AM – Breakfast</li>
+            <li>9:00 AM – ${work === "working" ? "Office Work" : "Home Activities"}</li>
+            <li>1:00 PM – Lunch</li>
+            <li>4:30 PM – Rest / Tea</li>
+            <li>7:30 PM – Dinner</li>
+            <li>${sleep} – Sleep</li>
+        </ul>
+
+        <h2>🍽️ Food Recommendation</h2>
+        <p>${food[disease]}</p>
+
+        <h2>💧 Water Intake</h2>
+        <p>${water} per day</p>
+
+        <h2>🚶 Walking</h2>
+        <p>${walk} daily</p>
+
+        <h2>🔥 Calories</h2>
+        <p>${calories} kcal/day</p>
+    `;
+}
+
+/* ---------- PRINT ---------- */
+function printRoutine() {
+    window.print();
+}
+</script>
+
+</body>
+</html>
